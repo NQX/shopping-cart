@@ -1,4 +1,6 @@
-const productRepository = require('./repository')
+const productRepository = require('../repository/productRepository');
+
+
 exports.createProduct = async (req, res) => {
     try {
         let payload = {
@@ -9,7 +11,7 @@ exports.createProduct = async (req, res) => {
         let product = await productRepository.createProduct({
             ...payload
         });
-        res.status(200).json({
+        res.status(201).json({
             status: true,
             data: product,
         })
