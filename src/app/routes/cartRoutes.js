@@ -9,5 +9,7 @@ router.post('/discount', cartController.applyDiscount);
 
 router.delete('/empty-cart', cartController.emptyCart);
 
+router.delete('/:id', cartController.removeItem);
+
 
 module.exports = router;

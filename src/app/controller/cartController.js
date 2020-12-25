@@ -117,7 +117,9 @@ exports.emptyCart = async (req, res) => {
     try {
         let cart = await cartRepository.cart();
         cart.items = [];
-        cart.subTotal = 0
+        cart.discountInEuro = 0;
+        cart.discountPercentage = 0;
+        cart.subTotal = 0;
         let data = await cart.save();
         res.status(200).json({
             type: "Success",
@@ -134,16 +136,61 @@ exports.emptyCart = async (req, res) => {
     }
 }
 
+exports.removeItem = async (req, res) => {
+    try {
+        let cart = await cartRepository.cart();
+        
+        const indexFound = cart.items.findIndex(item => String(item.productId.id) == req.params.id)
+        if(indexFound === -1) {
+           throw new Error('index of item to remove not found')
+        }
+
+        const item = cart.items[indexFound]
+        const price = item.price;
+
+        //if more than 1 item of same kind in cart, reduce quantity
+        if(item.quantity > 1) {
+            item.quantity--;
+            item.total -= price;
+        } else {
+            cart.items.splice(indexFound, 1)
+        }
+
+        cart.subTotal -= price;
+
+        //if cart empty, remove completely 
+        if(cart.items.length === 0) {
+            console.log('empty now')
+            cart.items = [];
+            cart.subTotal = 0
+        }
+            
+        await cart.save();
+
+        res.status(200).json({
+            type: "Success",
+            mgs: "Item has been removed",
+            data: item
+        });
+    } catch(err) {
+        console.log(err);
+        res.status(400).json({
+            type: "Invalid",
+            msg: "Something went wrong",
+            err: err
+        });
+    }
+}
+
 
 exports.applyDiscount = async (req, res) => {
     try {
         let cart = await cartRepository.cart();
-
         const discountPercentage = req.body.discountPercentage ? Number.parseInt(req.body.discountPercentage) : 0;
         const discountInEuro = req.body.discountInEuro ? Number.parseFloat(req.body.discountInEuro) : 0;
 
         if(discountPercentage != 0 && discountPercentage <= 100 && discountPercentage >= 0) {
-            cart.subTotal = cart.subTotal / 100 * discountPercentage;
+            cart.subTotal -= cart.subTotal / 100 * discountPercentage;
             cart.discountPercentage = discountPercentage;
         }
 
@@ -155,7 +202,7 @@ exports.applyDiscount = async (req, res) => {
         let data = await cart.save();
         res.status(200).json({
             type: "success",
-            mgs: "Process Successful",
+            mgs: "Discount applied successfully",
             data: data
         });
 
